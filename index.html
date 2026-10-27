@@ -1644,7 +1644,7 @@ function hubStats(){ const d = D(), sos = d.sos, ofd = BK.onroad;
   return '<section class="card" style="padding:14px 16px"><div class="row" style="margin-bottom:10px;align-items:baseline"><h3 style="font-size:14px">Operational metrics · ' + hubName(S.hub) + '</h3><span class="small muted">' + fmtD(0) + ' · from consignment, trip and bag status timestamps for this hub</span></div><div class="hsg">' + pipe.map(x => cell(x)).join('') + '</div><div class="small muted" style="margin:14px 0 6px;font-weight:700;letter-spacing:.05em">EXCEPTIONS</div><div class="hsg">' + exc.map(x => cell(x, 'bad')).join('') + '</div></section>'; }
 function pageAct(){
   const head = '<div class="ph"><div><h1>Action Center</h1></div></div>';
-  return head + planCards() + hubStats();
+  return head + planCards();
 }
 /* ===== RECEIVING: same pattern as loading. What is on the truck (or in the bag) on the left; drag, tick or scan it onto the panel on the right ===== */
 function rcvWork(t){
