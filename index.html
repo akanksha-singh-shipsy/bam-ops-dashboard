@@ -993,7 +993,7 @@ function mkSO(r, hub, dest, opt){
 }
 function ev(so, t, w, src, tone){ so.ev.push({ t, w, src, tone }); }
 function baseEvents(so){
-  ev(so, stamp(-1, so.created), 'Order received from BC (header only). On hold: pending address verification', 'BC');
+  ev(so, stamp(-1, so.created), 'Consignment created from BC', 'BC');
   ev(so, stamp(-1, so.created), 'Address verified against RAM (96%). EDD ' + so.edd + ' sent to BC', 'Shipsy');
   ev(so, stamp(0, '06:40'), 'BC released the order after auto-pack. Pieces: ' + pieceStr(so), 'BC');
   ev(so, stamp(0, '11:20'), 'Pick confirmed by BC: ' + so.pieces.length + '/' + so.pieces.length, 'BC');
@@ -1126,10 +1126,10 @@ function build(hub){
   lm('car', 7, (so, i) => { if (so.run) { const x = noRun[i % Math.max(1, noRun.length)] || loc[0]; [so.rcv, so.street, so.sub, so.pc, so.run, so.zone] = x; so.run = null; } so.carrier = (CARRIERS[hub] || ['VFS'])[i % 2] || 'VFS';
     so.cstat = ['To book','Booked','Booked','With carrier','With carrier','Out for delivery','No update'][i]; if (i % 3 === 0) { so.svc = 'Nominated carrier'; so.carrier = 'AusPost'; so.nominated = true; } if (so.cstat !== 'To book') ev(so, stamp(0, '12:20'), 'Allocated to ' + so.carrier + '. Label ready', 'Shipsy'); });
   for (let i = 0; i < 3; i++) { const so = add(mkSO(r, hub, hub, { ctn:0, plt:0, keg:4, client:'ASIANBEER' })); so.type = 'SR'; so.so = so.so.replace('SO', 'SR'); so.pieces.forEach((p, k) => p.id = so.so + '-' + pad(k + 1)); so.status = 'unp'; so.lm = 'New'; baseEvents(so); }
-  for (let i = 0; i < 9; i++) { const so = add(mkSO(r, hub, hub)); so.status = 'av'; if (i === 8) so.pre = 'soft'; else { so.avKind = ['newhi','instr','low','ramreq','newhi','instr','low','newhi'][i]; so.avConf = [96,0,78,95,94,0,81,97][i]; } so.runs = [{ n:1, at:stamp(-1, so.created), res:'Checking', ok:false }]; ev(so, stamp(-1, so.created), 'Order received from BC (header only). On hold: pending address verification', 'BC'); }
-  for (let i = 0; i < 12; i++) { const so = add(mkSO(r, hub, i % 3 === 2 ? other[0] : hub)); so.status = 'rfp'; so.pre = ['ver','ver','rfp','rfp','pick','pick'][i % 6]; ev(so, stamp(-1, so.created), 'Order received from BC (header only). On hold: pending address verification', 'BC'); ev(so, stamp(-1, so.created), 'Address verified against RAM (96%)', 'Shipsy'); if (so.pre !== 'ver') ev(so, stamp(0, '06:40'), 'BC sent pieces and Pickup awaited', 'BC'); if (so.pre === 'pick') ev(so, stamp(0, '11:20'), 'Pick confirmed by BC', 'BC'); }
+  for (let i = 0; i < 9; i++) { const so = add(mkSO(r, hub, hub)); so.status = 'av'; if (i === 8) so.pre = 'soft'; else { so.avKind = ['newhi','instr','low','ramreq','newhi','instr','low','newhi'][i]; so.avConf = [96,0,78,95,94,0,81,97][i]; } so.runs = [{ n:1, at:stamp(-1, so.created), res:'Checking', ok:false }]; ev(so, stamp(-1, so.created), 'Consignment created from BC', 'BC'); }
+  for (let i = 0; i < 12; i++) { const so = add(mkSO(r, hub, i % 3 === 2 ? other[0] : hub)); so.status = 'rfp'; so.pre = ['ver','ver','rfp','rfp','pick','pick'][i % 6]; ev(so, stamp(-1, so.created), 'Consignment created from BC', 'BC'); ev(so, stamp(-1, so.created), 'Address verified against RAM (96%)', 'Shipsy'); if (so.pre !== 'ver') ev(so, stamp(0, '06:40'), 'BC sent pieces and Pickup awaited', 'BC'); if (so.pre === 'pick') ev(so, stamp(0, '11:20'), 'Pick confirmed by BC', 'BC'); }
   const can = add(mkSO(r, hub, hub, { rcv:loc[0] })); can.status = 'cancelled'; can.cancelReason = 'Reopened in BC: delivery address changed by the customer';
-  ev(can, stamp(-1, can.created), 'Order received from BC (header only). On hold: pending address verification', 'BC'); ev(can, stamp(-1, can.created), 'Address verified against RAM (96%)', 'Shipsy');
+  ev(can, stamp(-1, can.created), 'Consignment created from BC', 'BC'); ev(can, stamp(-1, can.created), 'Address verified against RAM (96%)', 'Shipsy');
   ev(can, stamp(0, '09:12'), 'Cancelled: BC reopened the SO (customer changed the delivery address)', 'BC', 'bad'); can.runs[0].res = 'Verified · RAM match 96% (old address)';
   const can2 = add(mkSO(r, hub, hub)); can2.status = 'cancelled'; can2.cancelReason = 'Reopened in BC: delivery date moved by the customer';
   ev(can2, stamp(0, '10:40'), 'Cancelled: BC reopened the SO (delivery date moved)', 'BC', 'bad');
@@ -1319,11 +1319,11 @@ function mmStat(so){ const ps = so.pieces.filter(p => !p.short);
 function soStatus(so){
   if (so.status === 'av' && so.av) return so.av.stage === 'review' ? ['Address review required','warn'] : ['Address check running','blue'];
   if (so.status === 'cancelled') return ['Cancelled','bad'];
-  if (so.status === 'av') return so.pre === 'soft' ? ['Softdata Uploaded','mute'] : ['Address Check Pending','warn'];
+  if (so.status === 'av') return so.pre === 'soft' ? ['Created','mute'] : ['Address Check Pending','warn'];
   if (so.status === 'rfp') return so.pre === 'pick' ? ['Pickup Completed','blue'] : so.pre === 'rfp' ? ['Pickup Awaited','blue'] : ['Address Verified','ok'];
   if (so.status === 'lh') return mmStat(so);
   if (so.status === 'inb') return ['In Transit To Hub','teal'];
-  if (so.status === 'unp') return so.type === 'SR' ? ['Softdata Uploaded','mute'] : so.debag ? ['Debagged','violet'] : ['Reached At Hub','blue'];
+  if (so.status === 'unp') return so.type === 'SR' ? ['Created','mute'] : so.debag ? ['Debagged','violet'] : ['Reached At Hub','blue'];
   if (so.status === 'lmp') { const t = tripOf(so); if (so.lmst === 'failed') return ['Undelivered','bad']; return t && t.st === 'Started' ? ['Out For Delivery','teal'] : ['Reached At Hub','blue']; }
   if (so.status === 'del' && so.podv && so.podv.stage === 'rejected') return ['Delivered · POD rejected','bad'];
   if (so.status === 'del' && !so.pod) return ['Delivered · no POD','warn'];
@@ -2042,7 +2042,7 @@ const BK = {
   mm: s => s.status === 'lh' || s.status === 'inb',
   rlm: s => LMB[0][2](s), planned: s => LMB[1][2](s), onroad: s => LMB[2][2](s), lm: s => LMB[0][2](s) || LMB[1][2](s) || LMB[2][2](s), car: s => LMB[3][2](s),
   del: s => s.status === 'del', undel: s => LMB[5][2](s), cancelled: s => s.status === 'cancelled' };
-const BKT = [['all','All'],['hold','On hold'],['av','Address check'],['ver','Verified'],['rfp','Pickup awaited'],['pick','Pickup completed'],['mm','Middle mile'],['lm','Last mile'],['car','With carrier'],['del','Delivered'],['undel','Undelivered'],['cancelled','Cancelled']];
+const BKT = [['all','All'],['av','Address check'],['ver','Verified'],['rfp','Pickup awaited'],['pick','Pickup completed'],['mm','Middle mile'],['lm','Last mile'],['car','With carrier'],['del','Delivered'],['undel','Undelivered'],['cancelled','Cancelled']];
 const lmPool = () => D().sos.filter(BK.rlm);
 function mmPendSets(){ const d = D(), out = d.sos.filter(s => s.status === 'lh');
   return { pend:out.filter(s => soIn(s, 'pend')), nb:out.filter(s => s.pieces.some(p => !p.loc)).filter(mmPassSO), bags:d.bags.filter(b => ['Created','Sealed'].includes(b.st) && bagStage(b) === 'wait').filter(b => b.st === 'Created' ? (!S.lane || b.dest === S.lane) : mmPassBag(b)), short:d.shortages.filter(x => x.stage === 'Bagging' && x.st !== 'Found') }; }
@@ -2073,7 +2073,7 @@ function pageAll(){
   d.sos.forEach(so => { so._L = null; });
   const nopod = cnt(d.sos, s => inG(s, 'nopod'));
   const FS = (id, l, opts) => gF('all', id, '<label class="fsel"><span>' + l + '</span><select aria-label="' + l + '"><option>All</option>' + (opts || []).map(o => '<option>' + o + '</option>').join('') + '</select></label>');
-  const filt = gF('all', 'ref', '<span class="lbl">CN Reference Number :</span><input class="sel" placeholder="CN Reference Number" aria-label="CN Reference Number">') + FS('svc', 'Service Type', ['Normal Delivery','Timed Delivery','VIP Courier','Nominated carrier','Depot Collection','FOB']) + FS('status', 'Status', ['Softdata Uploaded','Address Verified','Pickup Awaited','Pickup Completed','Inscan At Hub','Bagged','In Transit To Hub','Reached At Hub','Out For Delivery','Delivered','Undelivered','Cancelled']) + FS('client', 'Customer Code', CLIENTS) + FS('type', 'Consignment Type', ['Delivery','Pickup']) + FS('ccat', 'Customer Category') + FS('rider', 'Assigned Rider') + FS('trip', 'Trip Assigned') + gF('all', 'dpc', '<input class="sel" placeholder="Destination Pincode" aria-label="Destination Pincode">') + FS('ohub', 'Origin Hub', HUBS.map(h => h[1])) + FS('dhub', 'Destination Hub', HUBS.map(h => h[1])) + FS('carrier', 'Courier Partner') + FS('edd', 'EDD', ['Today','Tomorrow','Later']) + FS('epd', 'EPD', ['Today','Tomorrow','Later']) + FS('zone', 'Zone (BAM)', ['VICMETRO','VICOUTER','NSWMETRO']) + FS('run', 'Run (BAM)') + FS('tag', 'Tags (BAM)', ['HAND_UNLOAD','BOOKING_REQ','TIMED','VAN_ONLY','NO_SEMI']) + FS('pallet', 'Pallets accepted (BAM)', ['Yes','No']) + FS('hand', 'Hand unload (BAM)', ['Yes','No']);
+  const filt = gF('all', 'ref', '<span class="lbl">CN Reference Number :</span><input class="sel" placeholder="CN Reference Number" aria-label="CN Reference Number">') + FS('svc', 'Service Type', ['Normal Delivery','Timed Delivery','VIP Courier','Nominated carrier','Depot Collection','FOB']) + FS('status', 'Status', ['Created','Address Verified','Pickup Awaited','Pickup Completed','Inscan At Hub','Bagged','In Transit To Hub','Reached At Hub','Out For Delivery','Delivered','Undelivered','Cancelled']) + FS('client', 'Customer Code', CLIENTS) + FS('type', 'Consignment Type', ['Delivery','Pickup']) + FS('ccat', 'Customer Category') + FS('rider', 'Assigned Rider') + FS('trip', 'Trip Assigned') + gF('all', 'dpc', '<input class="sel" placeholder="Destination Pincode" aria-label="Destination Pincode">') + FS('ohub', 'Origin Hub', HUBS.map(h => h[1])) + FS('dhub', 'Destination Hub', HUBS.map(h => h[1])) + FS('carrier', 'Courier Partner') + FS('edd', 'EDD', ['Today','Tomorrow','Later']) + FS('epd', 'EPD', ['Today','Tomorrow','Later']) + FS('zone', 'Zone (BAM)', ['VICMETRO','VICOUTER','NSWMETRO']) + FS('run', 'Run (BAM)') + FS('tag', 'Tags (BAM)', ['HAND_UNLOAD','BOOKING_REQ','TIMED','VAN_ONLY','NO_SEMI']) + FS('pallet', 'Pallets accepted (BAM)', ['Yes','No']) + FS('hand', 'Hand unload (BAM)', ['Yes','No']);
   const AB = (id, l, act) => gA('all', id, '<button class="btn" data-act="' + (act || 'noop') + '">' + l + '</button>');
   const acts = AB('addCN', 'Add Consignments') + AB('updCN', 'Update Consignments') + AB('printLabel', 'Print Label') + AB('download', 'Download') + (f === 'cancelled' ? '<button class="btn" data-act="noop">Revoke Cancel</button>' : '') + AB('hu', 'Handling Units') + AB('inscan', 'Inscan At Hub') + AB('outscan', 'Outscan at hub') + AB('arrival', 'Arrival') + AB('cancelCN', 'Cancel') + AB('setStatus', 'Set Status') + AB('assignCourier', 'Assign Courier Partner') + AB('createTrip', 'Create Trip') + AB('addTrip', 'Assign To Trip') + AB('rmTripAll', 'Remove From Trip') + AB('createBag', 'Create Bag') + AB('addBag', 'Add To Bag') + AB('debagAll', 'De-bag');
   return '<section class="sx">' + stabs(groups.map(([id, l]) => [id, l, cnt(d.sos, s => inG(s, id)), id === 'cancelled']), f, 'tab', 'all|') + '</section>'
@@ -2089,12 +2089,12 @@ function rowMenu(so){
 
 /* ===== SO PAGE ===== */
 function journey(so){ const viaLH = so.origin !== so.dest, bagged = so.debag || so.pieces.some(p => p.loc && p.loc.bag);
-  const steps = ['Softdata Uploaded','Address Check Pending','Address Verified','Pickup Awaited','Pickup Completed'].concat(viaLH ? ['Inscan At Hub', 'Bagged', 'In Transit To Hub', 'Debagged'] : [], ['Reached At Hub']);
+  const steps = ['Created','Address Check Pending','Address Verified','Pickup Awaited','Pickup Completed'].concat(viaLH ? ['Inscan At Hub', 'Bagged', 'In Transit To Hub', 'Debagged'] : [], ['Reached At Hub']);
   const st = soStatus(so)[0];
   if (so.status === 'car') steps.push(st === 'Delivered' ? 'Handed Over To Courier' : st, 'Delivered');
   else steps.push('Out For Delivery', ['Undelivered','Partially Delivered'].includes(st) ? st : 'Delivered');
   let idx = steps.indexOf(st); if (idx < 0) idx = so.status === 'cancelled' ? 1 : 0;
-  if (st === 'Address Verified' || st === 'Address Check Pending' || st === 'Softdata Uploaded') {}
+  if (st === 'Address Verified' || st === 'Address Check Pending' || st === 'Created') {}
   const opt = k => (k === 'Bagged' || k === 'Debagged'), skipped = (k, i) => opt(k) && (i < idx ? !bagged : false);
   return { steps, idx, skipped, opt, end:['Delivered','Undelivered','Partially Delivered'].includes(st) }; }
 const NA = v => v === undefined || v === null || v === '' ? '<span class="muted">Not Available</span>' : esc(String(v));
@@ -2114,7 +2114,7 @@ function cnTracking(so){ const rows = so.ev.slice().reverse(), cols = [C('t', 'C
   return '<section class="card"><div class="ctool"><span class="sp"></span>' + viewBtn('cn') + colBtn('cnTrack', cols, true) + '</div>' + T('cnTrack', cols, rows, { empty:'No data found' }) + '</section>'; }
 function cnLogs(so){ return '<section class="card" style="padding:16px 20px"><div class="tl">' + so.ev.slice().reverse().map(e => '<div class="tli"><div class="dot"></div><div class="small" style="width:150px"><b>' + e.t + '</b><div class="muted">CN Status Update</div></div><div class="small" style="flex:1;display:flex;gap:18px"><span style="width:160px;color:var(--ink-3)">Consignment Status</span><div><b>' + evName(e.w) + '</b><div class="muted">' + esc(e.w) + '</div></div></div></div>').join('') + '</div></section>'; }
 /* Shipsy event names for CN Tracking / Consignment Logs; the descriptive text stays as the Description column */
-const EVN = [[/^Order received from BC/i, 'Softdata Uploaded'], [/^Address verified/i, 'Address Verified'], [/address review|pending address verification|conflict/i, 'Address Review Required'], [/^BC released the order|^BC sent pieces/i, 'Pickup Awaited'], [/^Pick confirmed by BC/i, 'Pickup Completed'], [/^Staged at dock/i, 'Inscan At Hub'],
+const EVN = [[/^Order received from BC|^Consignment created/i, 'Created'], [/^Address verified/i, 'Address Verified'], [/address review|pending address verification|conflict/i, 'Address Review Required'], [/^BC released the order|^BC sent pieces/i, 'Pickup Awaited'], [/^Pick confirmed by BC/i, 'Pickup Completed'], [/^Staged at dock/i, 'Inscan At Hub'],
   [/sealed|added to bag|^Bagged|^Bag .* created/i, 'Bagged'], [/^Loaded on|loaded on trip|^Outscan/i, 'Outscan At Hub'], [/^Departed|departed .* on a .* trip|^In transit/i, 'In Transit To Hub'], [/^Arrived|^Unloaded|received at/i, 'Reached At Hub'], [/^De-?bagged/i, 'Debagged'], [/^Reached at hub/i, 'Reached At Hub'],
   [/^Planned on/i, 'Trip Assigned'], [/^Dropped by route plan/i, 'Not Planned'], [/^Trip started|^Out for delivery|started the trip/i, 'Out For Delivery'], [/^Partly delivered|^Partially/i, 'Partially Delivered'], [/^Undelivered|refused|no access/i, 'Undelivered'], [/^Delivered/i, 'Delivered'],
   [/^Allocated to|^Courier assigned/i, 'Courier Assigned'], [/label printed|^Booked|label ready/i, 'Pickup Awaited'], [/^Handed over|manifest closed/i, 'Handed Over To Courier'], [/^Cancelled/i, 'Cancelled'], [/^Revoke|^Cancel revoked|re-?released/i, 'Revoke Cancelled'],
