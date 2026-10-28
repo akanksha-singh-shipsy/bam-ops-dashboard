@@ -964,7 +964,7 @@ const mchips = ks => '<div class="mchips">' + ks.map(k => '<a class="mchip" href
 /* ---------- state ---------- */
 const S = { hub:'MEL', page:'act', gh:{}, order:{}, gorder:{}, gearCols:{}, gm:{}, gearMenu:null, views:null, vsel:{}, viewMenu:null, moreF:null, moreA:null, _mf:{}, _ov:{}, tab:{ avv:'review', avq:'all', avd:'today', podv:'queue', podq:'all', podd:'today', mm:'out', lmb:'toplan', lmbs:'all', lm:'plan', all:'all', rec:'pend', tp:'all', lmp:'unp', lmd:'ready', lmc:'trips', lmr:'all' }, dateField:'Created', pick:{}, bagMove:'car', mmb:'all', dq:'', lmMode:'cons', selTrip:null, ptab:'stops', lmView:'map', lq:'', shOpen:true, shDay:0, pv:false, hide:{}, colpick:null, mgrp:null, carrierF:'', view:'so', lane:null, q:'', sel:new Set(), basket:new Set(), exp:new Set(), open:null, otab:'overview', menu:false, sheet:null, modal:null, rowmenu:null, toast:'', builder:'bag', trip:{ route:null, trailer:'Semi 22P', contractor:CONTRACTORS[0] }, bagCarrier:'auto', lmu:null, vendor:'con', cfg:{ ibTick:false }, loadTrip:null, newTrip:null, sugg:null, mmEpd:'', mmSort:'epd' };
 const DB = {};
-function flash(m){ S.toast = m; clearTimeout(flash.t); flash.t = setTimeout(() => { S.toast = ''; render(); }, 3400); }
+function flash(m){ S.toast = m; clearTimeout(flash.t); flash.t = setTimeout(() => { S.toast = ''; const n = document.querySelector('.toast'); if (n) n.remove(); }, 3400); }
 const seq = { so:104560, bag:410, mm:40, lm:60, rcti:118, ram:513 };
 
 /* ---------- data ---------- */
