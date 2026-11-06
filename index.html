@@ -935,7 +935,7 @@ const abList = c => { const q = (c.abq || '').trim().toLowerCase(), r = abAll().
   return r.length ? r.map(a => '<button class="cfab' + (c.toAddr === a.id ? ' on' : '') + '" data-act="cfPickAddr" data-arg="' + a.id + '"><b>' + esc(a.name) + (ABOOK.includes(a) ? ' <em class="cfhub">Hub</em>' : '') + '</b><span>' + esc(a.line) + ' · ' + a.city + '</span></button>').join('') : '<div class="small muted">No address matches</div>'; };
 const HUBS = [['MEL','Melbourne DC','VIC'],['SYD','Sydney DC','NSW'],['BNE','Brisbane DC','QLD'],['ADL','Adelaide DC','SA'],['PER','Perth DC','WA']];
 const hubName = c => (HUBS.find(h => h[0] === c) || [0, c])[1];
-const ROUTES = { MEL:[['ROUTE_3','MEL → SYD',['SYD']],['ROUTE_5','MEL → SYD → BNE',['SYD','BNE']],['ROUTE_7','MEL → ADL',['ADL']],['ROUTE_9','MEL → PER',['PER']]], SYD:[['ROUTE_1','SYD → MEL',['MEL']],['ROUTE_4','SYD → BNE',['BNE']],['ROUTE_8','SYD → MEL → ADL',['MEL','ADL']]] };
+const ROUTES = { MEL:[['ROUTE_3','MEL → SYD',['SYD']],['ROUTE_5','MEL → SYD → BNE',['SYD','BNE']],['ROUTE_7','MEL → ADL',['ADL']],['ROUTE_9','MEL → PER',['PER']]], BNE:[['ROUTE_2','BNE → SYD',['SYD']],['ROUTE_6','BNE → SYD → MEL',['SYD','MEL']]], SYD:[['ROUTE_1','SYD → MEL',['MEL']],['ROUTE_4','SYD → BNE',['BNE']],['ROUTE_8','SYD → MEL → ADL',['MEL','ADL']]] };
 const TRAILERS = [['Semi 22P',22],['B-double 34P',34],['Rigid 12P',12]];
 const CONTRACTORS = ['Ridgeline Haulage','Southern Cross Linehaul','Coastal Freight Co.','DHL Linehaul','Sadleirs'];
 const FTL_VENDORS = ['Ridgeline Haulage','Southern Cross Linehaul','Coastal Freight Co.'], LTL_VENDORS = ['DHL Linehaul','Sadleirs'];
@@ -945,13 +945,14 @@ const CLIENTS = ['JOVALWINE','JOVALFAMILY','ASIANBEER','HENSCHKE','NAKEDWINES','
 const RCV = {
   MEL:[['Cumulus Inc.','45 Flinders Ln','Melbourne',3000,'MEL-C1 CBD','VICMETRO'],['Carlton Wine Room','172 Faraday St','Carlton',3053,'MEL-N3 North','VICMETRO'],['Dan Murphy\'s Richmond','300 Victoria St','Richmond',3121,'MEL-E2 East','VICMETRO'],['Coles Liquor 4412','211 Chapel St','Prahran',3181,'MEL-S4 Bayside','VICMETRO'],['The Prince Hotel','2 Acland St','St Kilda',3182,'MEL-S4 Bayside','VICMETRO'],['BWS Brunswick','380 Sydney Rd','Brunswick',3056,'MEL-N3 North','VICMETRO'],['Rockpool Bar & Grill','8 Whiteman St','Southbank',3006,'MEL-C1 CBD','VICMETRO'],['Attica','74 Glen Eira Rd','Ripponlea',3185,'MEL-S4 Bayside','VICMETRO'],['Footscray Cellars','90 Hopkins St','Footscray',3011,'MEL-W1 West','VICMETRO'],['Geelong Cellars','150 Moorabool St','Geelong',3220,'MEL-G5 Geelong','VICOUTER'],['Ballarat Wine Store','12 Sturt St','Ballarat',3350,null,'VICC1 TO 4'],['Bendigo Cellars','40 Pall Mall','Bendigo',3550,null,'VICC1 TO 4']],
   SYD:[['Fratelli Paradiso','12-16 Challis Ave','Potts Point',2011,'SYD-E1 East','NSWMETRO'],['Bentley Restaurant','27 O\'Connell St','Sydney',2000,'SYD-C1 CBD','NSWMETRO'],['Dan Murphy\'s Double Bay','33 Bay St','Double Bay',2028,'SYD-E1 East','NSWMETRO'],['Coles Liquor 7710','60 Hall St','Bondi Beach',2026,'SYD-E1 East','NSWMETRO'],['Porteño','50 Holt St','Surry Hills',2010,'SYD-C1 CBD','NSWMETRO'],['Newtown Hotel','174 King St','Newtown',2042,'SYD-I2 Inner West','NSWMETRO'],['Parramatta Cellars','12 Church St','Parramatta',2150,'SYD-W3 West','NSWMETRO'],['Orange Wine Store','150 Summer St','Orange',2800,null,'NSWC3']],
-  BNE:[['Gerard\'s Bar','13 James St','Fortitude Valley',4006,'BNE-C1 Inner','QLDMETRO'],['BWS Paddington','183 Given Tce','Paddington',4064,'BNE-C1 Inner','QLDMETRO'],['Gold Coast Cellars','3 Orchid Ave','Surfers Paradise',4217,null,'QLDGC']],
+  BNE:[['Gerard\'s Bar','13 James St','Fortitude Valley',4006,'BNE-C1 Inner','QLDMETRO'],['BWS Paddington','183 Given Tce','Paddington',4064,'BNE-C1 Inner','QLDMETRO'],['Hellenika','33 James St','Fortitude Valley',4006,'BNE-C1 Inner','QLDMETRO'],['Dan Murphy\'s Newstead','50 Breakfast Creek Rd','Newstead',4006,'BNE-C1 Inner','QLDMETRO'],['Wine Experience','1/48 Shottery St','Yeronga',4104,'BNE-S3 South','QLDMETRO'],['Coles Liquor 5520','400 Logan Rd','Stones Corner',4120,'BNE-S3 South','QLDMETRO'],['Craft Wine Store','109 Nundah St','Nundah',4012,'BNE-N2 North','QLDMETRO'],['Chermside Cellars','758 Gympie Rd','Chermside',4032,'BNE-N2 North','QLDMETRO'],['Rothwell\'s Bar','Edison Ln','Brisbane City',4000,'BNE-C1 Inner','QLDMETRO'],['Bacchus South Bank','Podium Level, Grey St','South Brisbane',4101,'BNE-S3 South','QLDMETRO'],
+    ['Gold Coast Cellars','3 Orchid Ave','Surfers Paradise',4217,null,'QLDGC'],['Burleigh Wine Bar','1 Goodwin Tce','Burleigh Heads',4220,null,'QLDGC'],['Noosa Wine House','6 Hastings St','Noosa Heads',4567,null,'QLDSC'],['Toowoomba Cellars','154 Margaret St','Toowoomba',4350,null,'QLDC1'],['Cairns Wine Co.','52 Shields St','Cairns',4870,null,'QLDC3'],['Townsville Bottle-O','11 Flinders St','Townsville',4810,null,'QLDC3'],['Rockhampton Liquor','28 East St','Rockhampton',4700,null,'QLDC2'],['Mackay Cellars','70 Victoria St','Mackay',4740,null,'QLDC2']],
   ADL:[['Africola','4 East Tce','Adelaide',5000,'ADL-C1 CBD','SAMETRO'],['Norwood Cellars','160 The Parade','Norwood',5067,'ADL-E2 East','SAMETRO']],
   PER:[['Wildflower','1 Cathedral Ave','Perth',6000,'PER-C1 CBD','WAMETRO'],['Fremantle Cellars','23 Market St','Fremantle',6160,'PER-S2 South','WAMETRO']],
 };
 const CARRIERS = { MEL:['VFS','Cochranes'], SYD:['Casella','VFS'], BNE:['Ozwide','Jaix (KTI)'], ADL:['Cochranes'], PER:['CTI'] };
-const RIDERS = { MEL:['James Smith','Liam Nguyen','Olivia Brown','Noah Wilson','Chloe Martin'], SYD:['Ava Taylor','Ethan Lee','Mia Walker','Jack Harris','Ruby King'] };
-const VEH = { MEL:[['BAMMEL02','Van 1.5t',4],['BAMMEL05','Rigid 8P',8],['BAMMEL07','Van 1.5t',4],['BAMMEL09','Rigid 8P',8]], SYD:[['BAMSYD11','Van 1.5t',4],['BAMSYD12','Rigid 8P',8],['BAMSYD14','Van 1.5t',4],['BAMSYD15','Rigid 8P',8]] };
+const RIDERS = { BNE:['Lachlan Kelly','Isla Murphy','Harrison Reid','Matilda Scott','Oscar Young'], MEL:['James Smith','Liam Nguyen','Olivia Brown','Noah Wilson','Chloe Martin'], SYD:['Ava Taylor','Ethan Lee','Mia Walker','Jack Harris','Ruby King'] };
+const VEH = { BNE:[['BAMBNE03','Van 1.5t',4],['BAMBNE04','Rigid 8P',8],['BAMBNE06','Van 1.5t',4],['BAMBNE08','Rigid 8P',8]], MEL:[['BAMMEL02','Van 1.5t',4],['BAMMEL05','Rigid 8P',8],['BAMMEL07','Van 1.5t',4],['BAMMEL09','Rigid 8P',8]], SYD:[['BAMSYD11','Van 1.5t',4],['BAMSYD12','Rigid 8P',8],['BAMSYD14','Van 1.5t',4],['BAMSYD15','Rigid 8P',8]] };
 /* BC Warehouse Charge prices (customer rate card from 1 Jul 2026): sending state → to-zone, per carton / pallet by quantity bracket */
 const RATES = {
   'VIC>VICMETRO':{ CTN:[[1,7.26],[2,4.75],[6,4.43],[11,3.98]], PLT:[[1,66.38],[2,52.95]] },
@@ -1017,7 +1018,7 @@ function build(hub){
   const r = rng(hub === 'MEL' ? 9001 : 4242);
   const D = { sos:[], bags:[], mm:[], inb:[], trips:[], shortages:[], rec:[], pay:[], ibBags:[] };
   DB[hub] = D;
-  const other = hub === 'MEL' ? ['SYD','BNE','ADL','PER'] : ['MEL','BNE'];
+  const other = hub === 'MEL' ? ['SYD','BNE','ADL','PER'] : hub === 'BNE' ? ['SYD','MEL'] : ['MEL','BNE'];
   const add = so => { D.sos.push(so); return so; };
   /* outbound line haul */
   const hero = add(mkSO(r, hub, hub === 'MEL' ? 'SYD' : 'MEL', hub === 'MEL' ? { so:104582, rcv:RCV.SYD[0], ctn:6, plt:1, keg:0, client:'JOVALWINE', svc:'Normal Delivery', win:'09:00–12:00' } : {}));
@@ -1042,7 +1043,7 @@ function build(hub){
   const t2 = { id:hub + '_UAT0000' + (seq.mm++), route:r2[0], rname:r2[1], contractor:'DHL Linehaul', cap:22, rego:'', st:'Loading', bags:[], loose:[], log:[{ t:stamp(0, '12:10'), w:'Trip created on ' + r2[1] + ' · DHL Linehaul', by:'User' }] };
   if (so2) so2.pieces.filter(p => !p.loc).forEach(p => { p.loc = { trip:t2.id }; t2.loose.push(p.id); }); D.mm.push(t2);
   /* inbound */
-  const fromHub = hub === 'MEL' ? 'SYD' : 'MEL', onward = hub === 'MEL' ? 'ADL' : 'BNE';
+  const fromHub = hub === 'MEL' ? 'SYD' : hub === 'BNE' ? 'SYD' : 'MEL', onward = hub === 'MEL' ? 'ADL' : hub === 'BNE' ? 'MEL' : 'BNE', dH = hub === 'BNE' ? 'ADL' : 'BNE';
   const inSOs = []; for (let i = 0; i < 22; i++) { const so = add(mkSO(r, fromHub, i < 18 ? hub : onward)); so.status = 'inb'; baseEvents(so); so.hubNow = fromHub; inSOs.push(so); }
   const bagA = { id:'BAG-' + fromHub + '-0' + (seq.bag++), dest:hub, st:'On trip', seal:'SL-778301', pieces:[], carrier:null };
   inSOs.slice(0, 9).forEach(so => freeCtn(so).forEach(p => { p.loc = { bag:bagA.id }; bagA.pieces.push(p.id); }));
@@ -1053,12 +1054,12 @@ function build(hub){
   inSOs.forEach(so => so.pieces.forEach(p => { if (!p.loc) { p.loc = { trip:it1.id }; it1.loose.push(p.id); } }));
   inSOs.forEach(so => ev(so, stamp(-1, '18:10'), 'Departed ' + hubName(fromHub) + ' on ' + it1.id, 'Hub'));
   D.inb.push(it1);
-  const dSOs = []; for (let i = 0; i < 7; i++) { const so = add(mkSO(r, 'BNE', hub)); so.status = 'inb'; baseEvents(so); so.hubNow = 'BNE'; dSOs.push(so); }
-  const dBag = { id:'BAG-BNE-0' + (seq.bag++), dest:hub, st:'To de-bag', seal:'SL-552010', pieces:[], carrier:null };
-  dSOs.forEach(so => { freeCtn(so).forEach(p => { p.loc = { bag:dBag.id }; dBag.pieces.push(p.id); }); so.pieces.forEach(p => { if (!p.loc) p.loc = { bag:dBag.id }; }); ev(so, stamp(-1, '15:20'), 'Bag ' + dBag.id + ' departed Brisbane on a DHL Linehaul trip', 'Hub'); });
+  const dSOs = []; for (let i = 0; i < 7; i++) { const so = add(mkSO(r, dH, hub)); so.status = 'inb'; baseEvents(so); so.hubNow = dH; dSOs.push(so); }
+  const dBag = { id:'BAG-' + dH + '-0' + (seq.bag++), dest:hub, st:'To de-bag', seal:'SL-552010', pieces:[], carrier:null };
+  dSOs.forEach(so => { freeCtn(so).forEach(p => { p.loc = { bag:dBag.id }; dBag.pieces.push(p.id); }); so.pieces.forEach(p => { if (!p.loc) p.loc = { bag:dBag.id }; }); ev(so, stamp(-1, '15:20'), 'Bag ' + dBag.id + ' departed ' + hubName(dH) + ' on a DHL Linehaul trip', 'Hub'); });
   dBag.pieces = dSOs.flatMap(s => s.pieces.map(p => p.id));
   D.ibBags.push(dBag);
-  D.inb.push({ id:'BNE_UAT0000' + (seq.mm++), kind:'trip', from:'BNE', rname:'BNE → ' + hub, by:'DHL Linehaul', eta:stamp(0, '06:50'), st:'Received', recAt:'07:10', scanned:dBag.pieces.length, bags:[dBag.id], loose:[] });
+  D.inb.push({ id:dH + '_UAT0000' + (seq.mm++), kind:'trip', from:dH, rname:dH + ' → ' + hub, by:'DHL Linehaul', eta:stamp(0, '06:50'), st:'Received', recAt:'07:10', scanned:dBag.pieces.length, bags:[dBag.id], loose:[] });
   const tSOs = []; for (let i = 0; i < 14; i++) { const so = add(mkSO(r, onward, hub)); so.status = 'inb'; baseEvents(so); so.hubNow = onward; tSOs.push(so); }
   const it3 = { id:onward + '_UAT0000' + (seq.mm++), kind:'trip', from:onward, rname:onward + ' → ' + hub, by:CONTRACTORS[2], eta:stamp(0, '19:30'), st:'Expected', bags:[], loose:[] };
   tSOs.forEach(so => so.pieces.forEach(p => { p.loc = { trip:it3.id }; it3.loose.push(p.id); }));
@@ -1206,7 +1207,7 @@ function render(){
 function topBar(so){
   return '<header class="top"><button class="ham" data-act="menu" aria-label="Menu">' + ic('menu', 20) + '</button><span class="ttl">' + (so ? 'Consignment · ' + so.so : PAGES[S.page]) + '</span><span class="sp"></span>'
     + (!so && ['pay','rec'].includes(S.page) ? '<div class="hb" style="background:var(--brand);margin-left:-6px;order:-1"><select id="finPayee" aria-label="Payee type">' + (S.page === 'rec' ? '<option value="cust">Customer</option>' : [['ven','Vendor'],['car','Carrier'],['own','Own fleet']].map(([v, l]) => '<option value="' + v + '"' + ((S.tab.fpay || 'ven') === v ? ' selected' : '') + '>' + l + '</option>').join('')) + '</select></div><span class="sp"></span>' : '<div class="hb"><select aria-label="Search by"><option>Reference Number</option><option>Bag Number</option><option>Trip Number</option><option>Receiver</option></select><input id="q" type="search" placeholder="Search Reference Number" value="' + esc(S.q) + '" aria-label="Search"><span>' + ic('search', 15) + '</span></div>')
-    + (so || ['pay','rec'].includes(S.page) ? '' : '<div class="hb"><span class="lbl">Hub</span><select id="hubSel" aria-label="Hub">' + HUBS.slice(0, 2).map(h => '<option value="' + h[0] + '"' + (S.hub === h[0] ? ' selected' : '') + '>' + h[1] + ', ' + h[0] + '_UAT</option>').join('') + '</select></div>' + dateCtl())
+    + (so || ['pay','rec'].includes(S.page) ? '' : '<div class="hb"><span class="lbl">Hub</span><select id="hubSel" aria-label="Hub">' + HUBS.slice(0, 3).map(h => '<option value="' + h[0] + '"' + (S.hub === h[0] ? ' selected' : '') + '>' + h[1] + ', ' + h[0] + '_UAT</option>').join('') + '</select></div>' + dateCtl())
     + '<div class="hic"><span>' + ic('pin', 16) + '</span><span>' + ic('alert', 16) + '</span><span>' + ic('clock', 16) + '</span></div><span class="av">A</span></header>';
 }
 function drawer(){
@@ -1236,7 +1237,7 @@ function dateCtl(){ const key = { all:'allCr', mm:'mmCr', lm:'lmCr', act:'actCr'
   return '<div class="hb">' + fld + rng + '</div>'; }
 /* bag series, as in Shipsy's bag master: the next number when no seal is scanned */
 const nextBagNo = () => { const n = Math.max(34, ...DB_ALLBAGS().map(b => (b.id.match(/^BAG(\d+)$/) || [0, 0])[1]).map(Number)) + 1; return 'BAG' + String(n).padStart(3, '0'); };
-const hubSel = () => '<label class="fsel"><span>Hub</span><select id="hubSel">' + HUBS.slice(0, 2).map(h => '<option value="' + h[0] + '"' + (S.hub === h[0] ? ' selected' : '') + '>' + h[1] + '</option>').join('') + '</select></label>';
+const hubSel = () => '<label class="fsel"><span>Hub</span><select id="hubSel">' + HUBS.slice(0, 3).map(h => '<option value="' + h[0] + '"' + (S.hub === h[0] ? ' selected' : '') + '>' + h[1] + '</option>').join('') + '</select></label>';
 const crSel = (id, v) => '<label class="fsel' + (v !== '30' ? ' applied' : '') + '"><span>Created at</span><select id="' + id + '">' + CREATED.map(c => '<option value="' + c[0] + '"' + (v === c[0] ? ' selected' : '') + '>' + c[1] + '</option>').join('') + '</select></label>';
 const qmatch = so => (S.page !== 'all' || crOK(so, S.allCr || '30')) && (S.page !== 'mm' || crOK(so, S.mmCr || '30')) && (S.page !== 'lm' || (crOK(so, S.lmCr || '30') && (!S.lmEdd || dayK(so.edd) === S.lmEdd) && lmGeo(so))) && qmatch0(so);
 const qmatch0 = so => !S.q || (so.so + ' ' + so.rcv + ' ' + so.sub + ' ' + so.client + ' ' + so.pieces.map(p => p.loc ? (p.loc.bag || p.loc.trip) : '').join(' ')).toLowerCase().includes(S.q.toLowerCase());
@@ -2012,6 +2013,10 @@ const MAPS = {
     roads:['M500,400 L520,252','M150,215 C300,260 400,300 456,360','M520,252 C580,262 640,282 742,330','M456,360 C500,380 540,330 548,318','M500,400 L500,560','M0,330 L456,360','M548,318 L760,420'],
     labels:[['Sydney',520,236],['Potts Point',600,226],['Double Bay',660,252],['Bondi Beach',742,314],['Surry Hills',560,304],['Newtown',446,344],['Alexandria',500,432],['Parramatta',150,199],['Sydney Harbour',300,120,1],['Botany Bay',560,605,1],['Tasman Sea',900,420,1]] },
 };
+MAPS.BNE = { hub:[300,430], hubName:'Brisbane DC · Rocklea', sub:{ 'Fortitude Valley':[560,250], Paddington:[450,240], Newstead:[600,215], Yeronga:[470,390], 'Stones Corner':[600,360], Nundah:[640,120], Chermside:[560,60], 'Brisbane City':[530,280], 'South Brisbane':[515,320] },
+  water:['M0,300 C120,330 260,300 380,330 C450,350 500,300 540,300 C580,300 620,270 680,250 C760,225 860,200 1000,180 L1000,205 C860,225 770,250 690,275 C630,295 590,325 545,325 C500,325 455,375 380,355 C260,325 120,355 0,325 Z'],
+  roads:['M300,430 L470,390','M470,390 L530,280','M530,280 L560,250 L640,120','M560,60 L640,120','M530,280 L450,240','M600,360 L470,390','M560,250 L600,215','M300,430 L0,520','M300,430 L300,640'],
+  labels:[['Brisbane City',530,264],['Fortitude Valley',560,234],['Paddington',440,224],['Newstead',620,200],['Yeronga',470,412],['Stones Corner',610,382],['Nundah',660,110],['Chermside',560,44],['Rocklea',300,462],['Brisbane River',220,290,1]] };
 const MP = () => MAPS[S.hub] || MAPS.MEL;
 const pos = so => { const m = MP(), b = m.sub[so.sub] || [m.hub[0] + 140, m.hub[1] - 90], h = hsh(so.so); return [b[0] + (h % 56) - 28, b[1] + ((h >> 5) % 44) - 22]; };
 function tripPane(t){
@@ -2551,7 +2556,7 @@ const POD_ACTIONS = ['Driver to collect a signed paper docket from the receiver 
 const podRecoAction = v => { const first = ((v.check ? v.check.items : []).find(x => !x.ok) || {}).k;
   return v.method === 'none' ? POD_ACTIONS[7] : first === 'sig' ? POD_ACTIONS[0] : first === 'real' ? POD_ACTIONS[4] : first === 'name' ? POD_ACTIONS[1] : first === 'stamp' ? POD_ACTIONS[2] : POD_ACTIONS[3]; };
 /* lookup across hubs: a docket can turn up at the wrong depot, so matching (and the manual match box) searches every hub's deliveries */
-const findSOAny = id => { for (const h of HUBS.slice(0, 2)) { const so = build(h[0]).sos.find(s => s.so === id); if (so) return [so, h[0]]; } return [null, null]; };
+const findSOAny = id => { for (const h of HUBS.slice(0, 3)) { const so = build(h[0]).sos.find(s => s.so === id); if (so) return [so, h[0]]; } return [null, null]; };
 const podBatchN = () => (D().podBatches || []).length + (D().podBatch ? 1 : 0) + 1;
 /* a batch of docket photos: the agent reads each one and matches it against every delivered consignment, at any hub (the ones delivered
    without a signature first). SO number and address both match: match found. One of them: a suggestion. Neither: unmatched, into the tray.
