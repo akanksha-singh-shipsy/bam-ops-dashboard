@@ -1131,7 +1131,10 @@ function build(hub){
   for (let i = 0; i < 2; i++) { const so = add(mkSO(r, hub, hub, { ctn:6, plt:0, keg:0, rcv:withRun[i + 2] })); so.status = 'unp'; so.lm = 'Undelivered'; baseEvents(so);
     so.pieces.slice(0, 4).forEach(p => p.dlv = true); so.reason = i ? 'Receiver refused 2 cartons (damaged)' : 'Receiver short on space: 2 cartons left'; ev(so, stamp(-1, '13:40'), 'Partly delivered: 4 of 6 pieces. 2 pieces returned to hub', 'Rider', 'warn'); }
   lm('car', 7, (so, i) => { if (so.run) { const x = noRun[i % Math.max(1, noRun.length)] || loc[0]; [so.rcv, so.street, so.sub, so.pc, so.run, so.zone] = x; so.run = null; } so.carrier = (CARRIERS[hub] || ['VFS'])[i % 2] || 'VFS';
-    so.cstat = ['To book','Booked','Booked','With carrier','With carrier','Out for delivery','No update'][i]; if (i % 3 === 0) { so.svc = 'Nominated carrier'; so.carrier = 'AusPost'; so.nominated = true; } if (so.cstat !== 'To book') ev(so, stamp(0, '12:20'), 'Allocated to ' + so.carrier + '. Label ready', 'Shipsy'); });
+    so.cstat = ['To book','Booked','Booked','With carrier','With carrier','Out for delivery','No update'][i]; if (i % 3 === 0) { so.svc = 'Nominated carrier'; so.carrier = 'AusPost'; so.nominated = true; } if (so.cstat !== 'To book') ev(so, stamp(0, '12:20'), 'Allocated to ' + so.carrier + '. Label ready', 'Shipsy');
+    if (lmHanded(so)) { so.pr = 'PR-' + hub + '-00' + (90 + i); ev(so, stamp(0, '12:40'), 'Pickup request ' + so.pr + ' sent to ' + so.carrier, 'User'); ev(so, stamp(0, '14:05'), 'Handed over to ' + so.carrier + ' at the dock', 'User'); }
+    if (['Out for delivery','No update'].includes(so.cstat)) ev(so, stamp(0, '18:30'), 'In transit · ' + so.carrier + ' depot scan', so.carrier + ' (integration)');
+    if (so.cstat === 'Out for delivery') ev(so, stamp(0, '07:10'), 'Out for delivery', so.carrier + ' (integration)'); });
   for (let i = 0; i < 3; i++) { const so = add(mkSO(r, hub, hub, { ctn:0, plt:0, keg:4, client:'ASIANBEER' })); so.type = 'SR'; so.so = so.so.replace('SO', 'SR'); so.pieces.forEach((p, k) => p.id = so.so + '-' + pad(k + 1)); so.status = 'unp'; so.lm = 'New'; baseEvents(so); }
   for (let i = 0; i < 9; i++) { const so = add(mkSO(r, hub, hub)); so.status = 'av'; if (i === 8) so.pre = 'soft'; else { so.avKind = ['newhi','instr','low','ramreq','newhi','instr','low','newhi'][i]; so.avConf = [96,0,78,95,94,0,81,97][i]; } so.runs = [{ n:1, at:stamp(-1, so.created), res:'Checking', ok:false }]; ev(so, stamp(-1, so.created), 'Consignment created from BC', 'BC'); }
   for (let i = 0; i < 12; i++) { const so = add(mkSO(r, hub, i % 3 === 2 ? other[0] : hub)); so.status = 'rfp'; so.pre = ['ver','ver','rfp','rfp','pick','pick'][i % 6]; ev(so, stamp(-1, so.created), 'Consignment created from BC', 'BC'); ev(so, stamp(-1, so.created), 'Address verified against RAM (96%)', 'Shipsy'); if (so.pre !== 'ver') ev(so, stamp(0, '06:40'), 'BC sent pieces and Pickup awaited', 'BC'); if (so.pre === 'pick') ev(so, stamp(0, '11:20'), 'Pick confirmed by BC', 'BC'); }
@@ -1235,7 +1238,7 @@ function dateCtl(){ const key = { all:'allCr', mm:'mmCr', lm:'lmCr', act:'actCr'
 const nextBagNo = () => { const n = Math.max(34, ...DB_ALLBAGS().map(b => (b.id.match(/^BAG(\d+)$/) || [0, 0])[1]).map(Number)) + 1; return 'BAG' + String(n).padStart(3, '0'); };
 const hubSel = () => '<label class="fsel"><span>Hub</span><select id="hubSel">' + HUBS.slice(0, 2).map(h => '<option value="' + h[0] + '"' + (S.hub === h[0] ? ' selected' : '') + '>' + h[1] + '</option>').join('') + '</select></label>';
 const crSel = (id, v) => '<label class="fsel' + (v !== '30' ? ' applied' : '') + '"><span>Created at</span><select id="' + id + '">' + CREATED.map(c => '<option value="' + c[0] + '"' + (v === c[0] ? ' selected' : '') + '>' + c[1] + '</option>').join('') + '</select></label>';
-const qmatch = so => (S.page !== 'all' || crOK(so, S.allCr || '30')) && (S.page !== 'mm' || crOK(so, S.mmCr || '30')) && (S.page !== 'lm' || (crOK(so, S.lmCr || '30') && (!S.lmEdd || dayK(so.edd) === S.lmEdd))) && qmatch0(so);
+const qmatch = so => (S.page !== 'all' || crOK(so, S.allCr || '30')) && (S.page !== 'mm' || crOK(so, S.mmCr || '30')) && (S.page !== 'lm' || (crOK(so, S.lmCr || '30') && (!S.lmEdd || dayK(so.edd) === S.lmEdd) && lmGeo(so))) && qmatch0(so);
 const qmatch0 = so => !S.q || (so.so + ' ' + so.rcv + ' ' + so.sub + ' ' + so.client + ' ' + so.pieces.map(p => p.loc ? (p.loc.bag || p.loc.trip) : '').join(' ')).toLowerCase().includes(S.q.toLowerCase());
 
 /* selection: S.sel = SOs; S.pick[key] = other entities (bags, trips, arrivals, shortages, close items, carriers) */
@@ -1810,8 +1813,10 @@ function lmCons(){
   const d = D(), b = S.tab.lmb, def = LMB.find(x => x[0] === b), all = d.sos.filter(def[2]);
   const FL = (key, id, l, opts, sel) => gF(key, id, '<label class="fsel"><span>' + l + '</span><select' + (sel ? ' id="' + sel + '"' : '') + ' aria-label="' + l + '">' + (opts || [['', 'All']]).map(o => '<option value="' + o[0] + '"' + (sel && (S.lmEdd || '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>');
   const fk = b === 'toplan' ? 'lmUnp' : 'lmc-' + b;
-  const lmFilt = sfilt(fk, b === 'toplan' ? FL(fk, 'edd', 'EDD', [['', 'All dates'], ['today', 'Today'], ['tom', 'Tomorrow'], ['later', 'Later']], 'lmEddSel') + FL(fk, 'zone', 'Zone (BAM)') + FL(fk, 'run', 'Run (BAM)') + FL(fk, 'client', 'Customer Code') + FL(fk, 'svc', 'Service Type')
-    : ((GEAR[fk] || {}).filters || []).map(([id, l]) => FL(fk, id, l)).join(''));
+  const GEO = ['toplan','car'].includes(b) ? '<label class="fsel' + (S.lmState ? ' applied' : '') + '"><span>State</span><select id="lmStateSel" aria-label="State">' + [['', 'All states']].concat(['NSW','VIC','QLD','SA','WA','TAS','ACT','NT'].map(x => [x, x])).map(o => '<option value="' + o[0] + '"' + ((S.lmState || '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>'
+    + '<label class="fsel' + (S.lmHubF ? ' applied' : '') + '"><span>Hub</span><select id="lmHubSel" aria-label="Hub">' + [['', 'All hubs']].concat(LM_HUBS).map(o => '<option value="' + o[0] + '"' + ((S.lmHubF || '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>' : '';
+  const lmFilt = sfilt(fk, GEO + (b === 'toplan' ? FL(fk, 'edd', 'EDD', [['', 'All dates'], ['today', 'Today'], ['tom', 'Tomorrow'], ['later', 'Later']], 'lmEddSel') + FL(fk, 'zone', 'Zone (BAM)') + FL(fk, 'run', 'Run (BAM)') + FL(fk, 'client', 'Customer Code') + FL(fk, 'svc', 'Service Type')
+    : ((GEAR[fk] || {}).filters || []).map(([id, l]) => FL(fk, id, l)).join('')));
   const bt = '<section class="sx">' + stabs(LMB.filter(x => !['undel','del'].includes(x[0])).map(([k, l, f]) => [k, l, cnt(d.sos, f), k === 'undel']), b, 'lmBucket') + '</section>' + '<section class="card" style="border-bottom:0;border-radius:8px 8px 0 0;margin-bottom:0">' + lmFilt + '</section>';
   if (b === 'toplan') return bt + lmPlan();
   const subs = b === 'car' ? [['all','All']].concat([...new Set(all.map(x => x.carrier).filter(Boolean))].sort().map(c => [c, c, x => x.carrier === c])) : LMBS[b] || [['all','All']], sb = subs.find(x => x[0] === S.tab.lmbs) || subs[0];
@@ -1822,15 +1827,16 @@ function lmCons(){
   const gk = 'lmc-' + b, ab = (act, ...r) => gA(gk, act, abtn(act, ...r));
   const acts = ({ planned:ab('lmRmTrip', 'Remove from trip', q(x => x.status === 'lmp' && tripOf(x) && tripOf(x).st === 'Created'), true) + ab('lmPrint', ic('print', 12) + 'Print label', q(() => true)),
     ofd:'',
-    car:gA(gk, 'mCarrier', '<button class="btn sm" data-act="mCarrier" data-arg="1"' + (q(x => x.status === 'car' && !lmHanded(x)) ? '' : ' disabled') + '>' + ic('truck', 12) + 'Assign carrier</button>') + ab('lmUnassign', 'Unassign carrier', q(x => x.status === 'car' && !lmHanded(x))) + ab('lmBag', ic('bag', 12) + 'Create bag', q(x => x.status === 'car' && !lmHanded(x))) + ab('lmPrint', ic('print', 12) + 'Print label', q(x => x.status === 'car'), true) + ab('lmPickupReq', 'Create pickup request', q(x => x.status === 'car' && x.cstat === 'Booked')) + ab('lmHandover', 'Handover to courier', q(x => x.status === 'car' && ['Booked','Pickup requested'].includes(x.cstat))),
+    car:gA(gk, 'mCarrier', '<button class="btn sm" data-act="mCarrier" data-arg="1"' + (q(x => x.status === 'car' && !lmHanded(x)) ? '' : ' disabled') + '>' + ic('truck', 12) + 'Assign carrier</button>') + ab('lmUnassign', 'Unassign carrier', q(x => x.status === 'car' && !lmHanded(x) && lmCanCancel(x))) + ab('lmBag', ic('bag', 12) + 'Create bag', q(x => x.status === 'car' && !lmHanded(x))) + ab('lmPrint', ic('print', 12) + 'Print label', q(x => x.status === 'car'), true) + ab('lmPickupReq', 'Create pickup request', q(x => x.status === 'car' && ['To book','Booked'].includes(x.cstat))) + ab('lmHandover', 'Handover to courier', q(x => x.status === 'car' && x.cstat === 'Pickup requested')),
     del:ab('bulkPod', ic('doc', 12) + 'Upload POD', q(x => x.status === 'del' && !x.pod), true) + ab('bulkResolve', 'Review & resolve part delivery', q(x => x.lmst === 'partial')),
     undel:ab('bulkScan', 'Scan in & replan', q(x => x.lmst === 'failed' && !/Damaged/.test(x.reason)), true) + ab('bulkHold', 'Scan in & hold', q(x => x.lmst === 'failed')) + ab('bulkResolve', 'Review & resolve part delivery', q(x => x.lmst === 'partial')) }[b] || '') + ovBtn(gk);
   const bar = sact('lmc-' + b, LMC(b), acts, '<span class="small muted" style="margin-right:6px">' + (S.sel.size ? S.sel.size + ' selected' : 'Select consignments to act on them') + '</span>');
-  const hint = { planned:'SOs on trips that have not started. Change stops, driver or vehicle in the Trip Manager Console.', ofd:'On trips running now. ETAs update from the rider app; undelivered SOs go back to Unplanned.', car:'Allocated to a carrier at this depot: assign or change carrier, unassign (back to Unplanned), bag, raise the pickup request, hand over at the dock. Unassign and change are possible until handover.', del:'Delivered today. Part deliveries are charged in full until reviewed.', undel:'Failed SOs are scanned back in, then go to the next open day or are held by reason code. Part deliveries are charged in full until reviewed.' }[b];
+  const hint = { planned:'SOs on trips that have not started. Change stops, driver or vehicle in the Trip Manager Console.', ofd:'On trips running now. ETAs update from the rider app; undelivered SOs go back to Unplanned.', car:'Courier Assigned → Create pickup request → Pickup Requested → Handover to courier → courier statuses by integration (In Transit, Out For Delivery, Delivered). Unassign (back to Unplanned) or change carrier until handover, only for carriers with a cancellation API.', del:'Delivered today. Part deliveries are charged in full until reviewed.', undel:'Failed SOs are scanned back in, then go to the next open day or are held by reason code. Part deliveries are charged in full until reviewed.' }[b];
   return bt + '<section class="card" style="border-radius:0 0 8px 8px">' + sc + bar + T('lmc-' + b, LMC(b), rows, { rc:s => (s.lmst === 'failed' ? 'ex' : s.lmst === 'partial' || (s.status === 'del' && !s.pod) ? 'wn' : '') + (S.sel.has(s.so) ? ' sel' : ''), empty:'Nothing in this bucket.' }) + '<div class="foot"><span>' + rows.length + ' consignments</span></div></section>';
 }
 const lmBagOf = id => (D().lmBags || []).find(b => b.id === id);
-const lmHanded = s => ['With carrier','Out for delivery','No update','Delivered'].includes(s.cstat);
+const lmHanded = s => ['With carrier','In transit','Out for delivery','No update','Delivered'].includes(s.cstat);
+const lmCanCancel = s => CANCEL_API[s.carrier] !== false;
 function LMC(b){
   const tr = s => tripOf(s), offs = { planned:['car','pod','why','done','pr'], ofd:['car','pod','why','pr'], car:['trip','drv','veh','pod','eta'], del:['why','eta','run','veh','pr'], undel:['car','pod','eta','run','veh','pr'] }[b] || ['pr'];
   const cols = [
@@ -1950,8 +1956,13 @@ function pageRoster(){
 }
 
 const INTEG = { VFS:'API', Cochranes:'API', Casella:'Transvirtual', AusPost:'API', Ozwide:'Transvirtual', 'Jaix (KTI)':'API', CTI:'Portal', DHL:'API', Sadleirs:'File (FTP)' };
-const CTONE = { 'To book':'warn', Booked:'blue', 'Pickup requested':'violet', 'With carrier':'teal', 'Out for delivery':'teal', 'No update':'teal', Delivered:'ok' };
-const CSTAT = { 'To book':'Courier Assigned', Booked:'Pickup Awaited', 'Pickup requested':'Pickup Requested', 'With carrier':'Handed Over To Courier', 'Out for delivery':'Out For Delivery', 'No update':'In Transit', Delivered:'Delivered' };
+const CTONE = { 'To book':'warn', Booked:'warn', 'Pickup requested':'violet', 'With carrier':'blue', 'In transit':'teal', 'Out for delivery':'teal', 'No update':'teal', Delivered:'ok' };
+/* carriers whose integration has a cancellation API: only these can be unassigned / changed from the dashboard (demo values, confirm per carrier) */
+const CANCEL_API = { VFS:true, Cochranes:true, AusPost:true, DHL:true, Casella:true, Ozwide:true, 'Jaix (KTI)':false, CTI:false, Sadleirs:false };
+const AU_ST = pc => { pc = +pc; return !pc ? '' : pc >= 2600 && pc <= 2618 || pc >= 2900 && pc <= 2920 ? 'ACT' : pc < 1000 ? 'NT' : ['', 'NSW', 'NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'VIC', 'QLD'][Math.floor(pc / 1000)] || ''; };
+const LM_HUBS = [['SYD','Sydney'],['MEL','Melbourne'],['BNE','Brisbane'],['ADL','Adelaide'],['PER','Perth'],['HOB','Hobart']];
+const lmGeo = s => (!S.lmState || AU_ST(s.pc) === S.lmState) && (!S.lmHubF || s.dest === S.lmHubF);
+const CSTAT = { 'To book':'Courier Assigned', Booked:'Courier Assigned', 'Pickup requested':'Pickup Requested', 'With carrier':'Handed Over To Courier', 'In transit':'In Transit', 'Out for delivery':'Out For Delivery', 'No update':'In Transit', Delivered:'Delivered' };
 const carStat = so => ['To book','Booked'].includes(so.cstat) ? pill('violet', 'Courier Assigned', true) : so.cstat === 'With carrier' ? pill('blue', 'Handover To Carrier', true) : pill('teal', 'In Transit', true);
 function pageTP(){
   const d = D(), all = d.sos.filter(s => s.status === 'car'), f = S.tab.tp, cf = S.carrierF;
@@ -3479,14 +3490,19 @@ const A = {
     if (!b) { const seal = (document.getElementById('lbS').value || '').trim().toUpperCase(); b = { id:seal || ('BAG-' + S.hub + '-L' + String(d.lmBags.length + 1).padStart(3, '0')), hub:S.hub, for:document.getElementById('lbF').value, sos:[], st:'Open', at:now() }; d.lmBags.push(b); }
     S.modal.ids.map(findSO).forEach(so => { if (so.lmBag && so.lmBag !== b.id) { const o = lmBagOf(so.lmBag); if (o) o.sos = o.sos.filter(x => x !== so.so); } if (!b.sos.includes(so.so)) b.sos.push(so.so); so.lmBag = b.id; ev(so, now(), 'Added to bag ' + b.id + ' (' + b.for + ')', 'User'); });
     S.modal = null; S.sel.clear(); render.keep = true; flash(b.sos.length + ' SO' + (b.sos.length > 1 ? 's' : '') + ' in bag ' + b.id + ' · ' + b.for + (lab ? ' · bag label printed' : '')); },
-  lmUnassign(){ const ids = selOf('so', id => { const x = findSO(id); return x && x.status === 'car' && !lmHanded(x); }); if (!ids.length) return flash('Select carrier SOs not yet handed over');
-    ids.forEach(id => { const so = findSO(id), prev = so.carrier; so.status = 'unp'; so.lm = 'New'; so.carrier = null; so.cstat = null; so.pr = null; so.prWin = null; ev(so, now(), 'Carrier ' + prev + ' unassigned. Booking cancelled; carrier label voided. Back to Unplanned', 'User'); }); PK('so').clear(); render.keep = true; flash(ids.length + ' SO' + (ids.length > 1 ? 's' : '') + ' back to Unplanned'); },
-  lmPickupReq(){ const ids = selOf('so', id => { const x = findSO(id); return x && x.status === 'car' && x.cstat === 'Booked'; }); if (!ids.length) return flash('Select booked carrier SOs (label printed) first');
+  lmUnassign(){ const all = selOf('so', id => { const x = findSO(id); return x && x.status === 'car' && !lmHanded(x); }); if (!all.length) return flash('Select carrier SOs not yet handed over');
+    const no = all.filter(id => !lmCanCancel(findSO(id))), ids = all.filter(id => lmCanCancel(findSO(id))); if (!ids.length) return flash([...new Set(no.map(id => findSO(id).carrier))].join(', ') + ': no cancellation API. Cancel the booking with the carrier first');
+    ids.forEach(id => { const so = findSO(id), prev = so.carrier; so.status = 'unp'; so.lm = 'New'; so.carrier = null; so.cstat = null; so.pr = null; so.prWin = null; ev(so, now(), 'Carrier ' + prev + ' unassigned. Booking cancelled; carrier label voided. Back to Unplanned', 'User'); }); PK('so').clear(); render.keep = true; flash(ids.length + ' SO' + (ids.length > 1 ? 's' : '') + ' back to Unplanned' + (no.length ? ' · ' + no.length + ' kept: carrier has no cancellation API' : '')); },
+  lmPickupReq(){ const ids = selOf('so', id => { const x = findSO(id); return x && x.status === 'car' && ['To book','Booked'].includes(x.cstat); }); if (!ids.length) return flash('Select SOs in Courier Assigned first');
     const cars = [...new Set(ids.map(id => findSO(id).carrier))]; if (cars.length > 1) return flash('One carrier per pickup request. Pick one carrier pill first'); S.modal = { kind:'lmpr', ids }; },
   doLmPickupReq(){ const d = D(); d.prSeq = (d.prSeq || 0) + 1; const ref = 'PR-' + S.hub + '-' + String(d.prSeq).padStart(4, '0'), win = document.getElementById('prD').value + ' ' + document.getElementById('prW').value;
     S.modal.ids.map(findSO).forEach(so => { so.pr = ref; so.prWin = win; so.cstat = 'Pickup requested'; ev(so, now(), 'Pickup request ' + ref + ' sent to ' + so.carrier + ' (' + win + ')', 'User'); });
     const n = S.modal.ids.length; S.modal = null; PK('so').clear(); render.keep = true; flash(ref + ' created · ' + n + ' SO' + (n > 1 ? 's' : '')); },
-  lmHandover(){ const ids = selOf('so', id => { const x = findSO(id); return x && x.status === 'car' && ['Booked','Pickup requested'].includes(x.cstat); }); ids.forEach(id => { const so = findSO(id); so.cstat = 'With carrier'; ev(so, now(), 'Handed over to ' + so.carrier, 'User'); }); PK('so').clear(); render.keep = true; flash(ids.length + ' handed over to the courier'); },
+  lmHandover(){ const ids = selOf('so', id => { const x = findSO(id); return x && x.status === 'car' && x.cstat === 'Pickup requested'; }); if (!ids.length) return flash('Create a pickup request first, then hand over');
+    ids.forEach(id => { const so = findSO(id); so.cstat = 'With carrier'; ev(so, now(), 'Handed over to ' + so.carrier + ' at the dock', 'User'); }); PK('so').clear(); render.keep = true; flash(ids.length + ' handed over · courier statuses now come by integration');
+    /* demo: courier integration pushes statuses after handover */
+    const step = (st, txt, ms) => setTimeout(() => { ids.map(findSO).filter(so => so && so.status === 'car' && lmHanded(so) && so.cstat !== 'Delivered').forEach(so => { so.cstat = st; ev(so, now(), txt, so.carrier + ' (integration)', st === 'Delivered' ? 'ok' : undefined); }); if (!S.modal) { render.keep = true; render(); } }, ms);
+    step('In transit', 'In transit · picked up from the depot', 8000); step('Out for delivery', 'Out for delivery', 16000); step('Delivered', 'Delivered · carrier POD received', 24000); },
   lmSetStatus(){ flash('Set status: pick a status in Shipsy'); },
   goPlan(k){ S.sel.clear(); S.finCust = null; if (k === 'mm') { S.page = 'mm'; S.tab.mm = 'pend'; S.mmPill = 'nb'; S.rcv = null; S.loadTrip = null; S.mmb = 'all'; S.mmSort = 'epd'; S.lane = null; S.mmRoute = ''; S.mmEpd = ''; S.mmSt = ''; }
     if (k === 'lm') { S.page = 'lm'; S.lmMode = 'cons'; S.tab.lmb = 'toplan'; S.lmu = null; }
@@ -3565,7 +3581,8 @@ const A = {
   bulkExc(){ const n = PK('short').size; PK('short').clear(); flash(n + ' exception' + (n > 1 ? 's' : '') + ' raised: SHORTAGE_IN_DEBAGGING'); },
   lmMode(v){ S.lmMode = v; S.sel.clear(); render.keep = true; },
   lmBucket(k){ S.page = 'lm'; S.lmMode = 'cons'; S.tab.lmb = k; S.tab.lmbs = 'all'; S.sel.clear(); render.keep = true; },
-  mCarrier(ch){ const ids = [...S.sel].filter(id => { const s = findSO(id); return s && (s.status === 'unp' || s.status === 'car' || (s.status === 'lmp' && s.lmst === 'pending')); }); if (!ids.length) return flash('Select SOs first'); S.modal = { kind:'carrier', ids, change:ch === '1' }; },
+  mCarrier(ch){ const ids = [...S.sel].filter(id => { const s = findSO(id); return s && (s.status === 'unp' || s.status === 'car' || (s.status === 'lmp' && s.lmst === 'pending')); }); if (!ids.length) return flash('Select SOs first');
+    const bad = ids.map(findSO).filter(s => s.status === 'car' && (lmHanded(s) || !lmCanCancel(s))); if (bad.length) return flash(bad[0].so + ': ' + (lmHanded(bad[0]) ? 'already handed over' : bad[0].carrier + ' has no cancellation API') + '. Carrier can\'t be changed from the dashboard'); S.modal = { kind:'carrier', ids, change:ch === '1' }; },
   doCarrier(){ const c = document.getElementById('caC').value, lab = document.getElementById('caL').checked, ss = S.modal.ids.map(findSO), ch = S.modal.change;
     ss.forEach(so => { if (so.trip) { const t = D().trips.find(x => x.id === so.trip); if (t) t.stops = t.stops.filter(x => x !== so.so); so.trip = null; }
       const prev = so.status === 'car' ? so.carrier : null, re = !!prev && prev !== c; so.status = 'car'; so.carrier = c; so.cstat = lab ? 'Booked' : 'To book'; so.lmst = null; if (re) { so.pr = null; so.prWin = null; }
@@ -3595,7 +3612,7 @@ const A = {
   gearMenu(k){ S.gearMenu = S.gearMenu === k ? null : k; S.moreF = S.moreA = S.viewMenu = null; render.keep = true; },
   rangeMenu(k){ S.rangeMenu = S.rangeMenu === k ? null : k; render.keep = true; },
   rangePick(a){ const [k, v] = a.split('|'); S[k] = v; S.rangeMenu = null; render(); },
-  resetF(k){ if (k.startsWith('pod')) { S.tab.podq = 'all'; S.tab.podd = 'today'; S.tab.podc = '30d'; } if (k.startsWith('av')) { S.tab.avq = 'all'; S.tab.avd = 'today'; S.tab.avc = '30d'; }
+  resetF(k){ if (k.startsWith('lm')) { S.lmState = ''; S.lmHubF = ''; } if (k.startsWith('pod')) { S.tab.podq = 'all'; S.tab.podd = 'today'; S.tab.podc = '30d'; } if (k.startsWith('av')) { S.tab.avq = 'all'; S.tab.avd = 'today'; S.tab.avc = '30d'; }
     S.lane = null; S.mmRoute = null; S.lmEdd = null; S.q = ''; render(); flash('Filters reset'); },
   viewPick(a){ const [pg, id] = a.split('|'); const v = views(pg).find(x => x.id === id); S.vsel[pg] = id; viewApply(pg, v ? v.def : null); S.viewMenu = null; S.gearMenu = null; if (S.modal && S.modal.kind === 'views') S.modal = { kind:'views', page:pg }; flash((v ? v.name : 'Custom view') + ' applied'); },
   viewsOpen(pg){ S.viewMenu = null; S.gearMenu = null; S.modal = { kind:'views', page:pg }; },
@@ -3805,6 +3822,8 @@ document.addEventListener('change', e => {
   if (t.id === 'mmCrSel') { S.mmCr = t.value; render.keep = true; render(); return; }
   if (t.id === 'lmCrSel') { S.lmCr = t.value; render.keep = true; render(); return; }
   if (t.id === 'lmEddSel') { S.lmEdd = t.value; render.keep = true; render(); return; }
+  if (t.id === 'lmStateSel') { S.lmState = t.value; S.sel.clear(); render.keep = true; render(); return; }
+  if (t.id === 'lmHubSel') { S.lmHubF = t.value; S.sel.clear(); render.keep = true; render(); return; }
   if (t.id === 'podqSel') { S.tab.podq = t.value; render.keep = true; render(); return; }
   if (t.id === 'avqSel') { S.tab.avq = t.value; render.keep = true; render(); return; }
   if (t.id === 'podCr' || t.id === 'avCr') { S.tab[t.id === 'podCr' ? 'podc' : 'avc'] = t.value; render.keep = true; render(); return; }
